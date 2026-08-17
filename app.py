@@ -1,5 +1,6 @@
 """My Health Tracker Streamlit application."""
 
+import hashlib
 from datetime import datetime
 
 import plotly.graph_objects as go
@@ -27,7 +28,6 @@ from analytics import (
 )
 from activity_data import (
     ACTIVITY_DATA,
-    DAILY_STEP_GOAL,
     calculate_activity_metrics,
     goal_achievement,
     moving_average,
@@ -39,14 +39,15 @@ from date_filters import (
     filter_records_by_date,
     records_through_date,
 )
+from database.repository import HealthGoals, HealthRepository
 from google_health_integration import (
     GoogleHealthClient,
     GoogleHealthConfigurationError,
-    GoogleHealthDataBundle,
     oauth_state,
     valid_oauth_state,
 )
 from health_data import parse_activity_csv, parse_sleep_csv, parse_weight_csv
+from services.health_sync_service import HealthSyncService
 from sleep_data import (
     SLEEP_DATA,
     bedtime_hour,
@@ -63,35 +64,45 @@ from weight_data import (
 )
 
 
-def uploaded_or_demo(uploaded_file, parser, demo_records, label: str):
-    """Use validated uploaded records or retain demo records with feedback."""
+def persist_uploaded_csv(
+    uploaded_file, parser, sync_service, category: str, label: str
+):
+    """Validate and persist an uploaded CSV, returning whether import succeeded."""
     if uploaded_file is None:
-        st.caption(f"{label}: using demo data")
-        return demo_records
-
+        return False
+    digest = hashlib.sha256(uploaded_file.getvalue()).hexdigest()
+    digest_key = f"{category}_csv_import_digest"
+    if st.session_state.get(digest_key) == digest:
+        return True
     result = parser(uploaded_file)
     if not result.is_valid:
         for message in result.errors:
             st.error(f"{label}: {message}")
-        st.caption(f"{label}: using demo data until the file is corrected")
-        return demo_records
+        return False
 
     for message in result.warnings:
         st.warning(f"{label}: {message}")
-    st.success(f"{label}: loaded {len(result.records)} rows")
-    return result.records
+    sync_service.import_records(category, result.records)
+    st.session_state[digest_key] = digest
+    st.success(f"{label}: saved {len(result.records)} CSV rows")
+    return True
 
 
-def normalized_health_source(
-    google_health_records, uploaded_file, parser, demo_records, label: str
-):
-    """Prefer Google Health records, then validated CSV, then demo data."""
-    if google_health_records:
-        st.success(
-            f"{label}: using {len(google_health_records)} Google Health records"
-        )
-        return google_health_records
-    return uploaded_or_demo(uploaded_file, parser, demo_records, label)
+def persisted_or_demo(repository, category: str, demo_records, label: str):
+    """Prefer persisted Google Health records, then CSV records, then demo data."""
+    getter = getattr(repository, f"get_{category}")
+    sources = repository.available_sources(category)
+    for source, description in (
+        ("google_health", "stored Google Health"),
+        ("csv", "stored CSV"),
+    ):
+        if source in sources:
+            records = getter(source)
+            if records:
+                st.success(f"{label}: using {len(records)} {description} records")
+                return records
+    st.caption(f"{label}: using demo data")
+    return demo_records
 
 
 def safe_google_health_error(error: Exception, client: GoogleHealthClient) -> str:
@@ -144,12 +155,15 @@ st.set_page_config(
     layout="wide",
 )
 
-st.session_state.setdefault("steps_goal", DAILY_STEP_GOAL)
-st.session_state.setdefault("sleep_goal", 7.0)
-st.session_state.setdefault("weight_goal_enabled", False)
-st.session_state.setdefault("target_weight", 155.0)
+health_repository = HealthRepository()
+health_sync_service = HealthSyncService(health_repository)
+stored_goals = health_repository.get_goals()
+
+st.session_state.setdefault("steps_goal", stored_goals.steps_goal)
+st.session_state.setdefault("sleep_goal", stored_goals.sleep_goal_hours)
+st.session_state.setdefault("weight_goal_enabled", stored_goals.target_weight_enabled)
+st.session_state.setdefault("target_weight", stored_goals.target_weight_lb)
 st.session_state.setdefault("coach_messages", [])
-st.session_state.setdefault("google_health_data", None)
 
 with st.sidebar:
     st.title("🩺 My Health Tracker")
@@ -201,10 +215,9 @@ with st.sidebar:
                 else:
                     try:
                         with st.spinner("Syncing Google Health data..."):
-                            st.session_state.google_health_data = (
-                                google_health_client.fetch_historical_data()
+                            health_sync_service.sync_google_health(
+                                google_health_client
                             )
-                            st.session_state.google_health_last_sync = datetime.now()
                     except Exception as error:
                         st.error(
                             "Google connected, but data sync failed: "
@@ -225,10 +238,9 @@ with st.sidebar:
             if sync_column.button("Sync Health", width="stretch"):
                 try:
                     with st.spinner("Retrieving Google Health history..."):
-                        st.session_state.google_health_data = (
-                            google_health_client.fetch_historical_data()
+                        health_sync_service.sync_google_health(
+                            google_health_client
                         )
-                        st.session_state.google_health_last_sync = datetime.now()
                     st.rerun()
                 except Exception as error:
                     st.error(
@@ -239,11 +251,11 @@ with st.sidebar:
                 try:
                     google_health_client.disconnect()
                 finally:
-                    st.session_state.google_health_data = None
-                    st.session_state.pop("google_health_last_sync", None)
+                    st.session_state.pop("google_health_oauth_state", None)
                 st.rerun()
-            if last_sync := st.session_state.get("google_health_last_sync"):
-                st.caption(f"Last synced: {last_sync:%b %d, %Y %I:%M %p}")
+            if last_sync := health_repository.last_successful_sync("google_health"):
+                completed_at = datetime.fromisoformat(last_sync["completed_at"])
+                st.caption(f"Last synced: {completed_at:%b %d, %Y %I:%M %p}")
         else:
             st.session_state.google_health_oauth_state = oauth_state(
                 google_health_client.config.client_secret
@@ -278,29 +290,24 @@ with st.sidebar:
     with st.expander("Expected Weight CSV format"):
         st.code("date,weight\n2026-08-15,160.0", language="csv")
 
-    google_health_data: GoogleHealthDataBundle | None = (
-        st.session_state.google_health_data
+    persist_uploaded_csv(
+        activity_upload, parse_activity_csv, health_sync_service, "activity", "Activity"
     )
-    activity_records = normalized_health_source(
-        google_health_data.activity if google_health_data else None,
-        activity_upload,
-        parse_activity_csv,
-        ACTIVITY_DATA,
-        "Activity",
+    persist_uploaded_csv(
+        sleep_upload, parse_sleep_csv, health_sync_service, "sleep", "Sleep"
     )
-    sleep_records = normalized_health_source(
-        google_health_data.sleep if google_health_data else None,
-        sleep_upload,
-        parse_sleep_csv,
-        SLEEP_DATA,
-        "Sleep",
+    persist_uploaded_csv(
+        weight_upload, parse_weight_csv, health_sync_service, "weight", "Weight"
     )
-    weight_records = normalized_health_source(
-        google_health_data.weight if google_health_data else None,
-        weight_upload,
-        parse_weight_csv,
-        WEIGHT_DATA,
-        "Weight",
+
+    activity_records = persisted_or_demo(
+        health_repository, "activity", ACTIVITY_DATA, "Activity"
+    )
+    sleep_records = persisted_or_demo(
+        health_repository, "sleep", SLEEP_DATA, "Sleep"
+    )
+    weight_records = persisted_or_demo(
+        health_repository, "weight", WEIGHT_DATA, "Weight"
     )
     activity_history = activity_records
     sleep_history = sleep_records
@@ -330,6 +337,14 @@ with st.sidebar:
             step=0.5,
             key="target_weight",
         )
+    selected_goals = HealthGoals(
+        steps_goal=st.session_state.steps_goal,
+        sleep_goal_hours=st.session_state.sleep_goal,
+        target_weight_lb=st.session_state.target_weight,
+        target_weight_enabled=st.session_state.weight_goal_enabled,
+    )
+    if selected_goals != stored_goals:
+        health_repository.save_goals(selected_goals)
 
     st.divider()
     st.header("Historical Filters")

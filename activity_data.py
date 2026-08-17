@@ -20,6 +20,14 @@ class ActivityRecord:
     resting_heart_rate: int | None = None
 
 
+@dataclass(frozen=True)
+class HeartRateRecord:
+    """Resting heart-rate measurement for one day."""
+
+    day: date
+    resting_bpm: int
+
+
 def generate_activity_data(days: int = 90, seed: int = 42) -> list[ActivityRecord]:
     """Generate deterministic local activity history ending today."""
     random = Random(seed)
