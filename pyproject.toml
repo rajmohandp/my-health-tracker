@@ -1,0 +1,24 @@
+[project]
+name = "my-health-tracker"
+version = "0.1.0"
+description = "A clean Streamlit shell for tracking personal health trends."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "groq>=0.30,<1",
+    "google-auth-oauthlib>=1.2,<2",
+    "httpx>=0.28,<1",
+    "keyring>=25,<27",
+    "pandas>=2.2,<4",
+    "plotly>=6.0,<7",
+    "python-dotenv>=1.0,<2",
+    "streamlit>=1.40,<2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

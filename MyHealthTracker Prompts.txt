@@ -1,0 +1,464 @@
+# Incremental Prompts for Health Tracker App
+
+## Prompt 1 — Create the Basic Streamlit App
+
+Build a Python Streamlit application called **My Health Tracker**.
+
+For this first version, focus only on the basic UI structure. Do not add database integration, APIs, AI features, or complex business logic yet.
+
+Requirements:
+
+1. Use Python and Streamlit.
+2. Use `uv` for package management and virtual environment setup.
+3. Create a clean project folder structure.
+4. Create the main Streamlit application.
+5. Configure the page with:
+
+   * Page title: `My Health Tracker`
+   * Page icon: health-related emoji
+   * Wide layout
+6. Add a sidebar containing:
+
+   * Application name
+   * Short description: `Track your activity, sleep, weight, and overall health trends.`
+7. Create the following tabs:
+
+   * Dashboard
+   * Activity
+   * Sleep
+   * Weight
+   * AI Health Coach
+8. For now, every tab should contain only a heading and short placeholder description.
+9. Keep the UI modern, clean, and simple.
+10. Do not implement health calculations yet.
+11. Provide instructions for:
+
+* Creating the project
+* Installing dependencies using `uv`
+* Running the Streamlit application locally
+
+12. Explain the purpose of every file created.
+
+Do not build future functionality yet. Stop after the basic application shell is working.
+
+---
+
+## Prompt 2 — Design the Dashboard
+
+Enhance the existing **My Health Tracker** Streamlit application.
+
+Do not change the existing project structure unless necessary.
+
+For this step, work only on the **Dashboard tab**.
+
+Create four metric cards:
+
+* Today's Steps
+* Last Night Sleep
+* Current Weight
+* Resting Heart Rate
+
+For now, use sample hardcoded values:
+
+* Steps: 8,450
+* Sleep: 6 hr 45 min
+* Weight: 160 lb
+* Resting Heart Rate: 64 bpm
+
+Below the metric cards, create a section called:
+
+`Health Overview`
+
+Add three placeholder charts using sample data:
+
+1. Daily Steps — last 7 days
+2. Sleep Duration — last 7 days
+3. Weight Trend — last 30 days
+
+Use Plotly for charts.
+
+Requirements:
+
+* Keep the design simple and professional.
+* Use responsive Streamlit columns.
+* Add proper chart titles and axis labels.
+* Do not connect to an external API.
+* Do not add database functionality.
+* Do not implement AI functionality yet.
+* Keep sample data separate from UI code where practical.
+
+Stop after the Dashboard works correctly.
+
+---
+
+## Prompt 3 — Build the Activity Tab
+
+Enhance the existing application by implementing only the **Activity tab**.
+
+Use sample activity data for the last 30 days.
+
+Include:
+
+### Metric Cards
+
+* Today's Steps
+* 7-Day Average Steps
+* Monthly Average Steps
+* Active Minutes Today
+
+### Charts
+
+1. Daily Steps
+2. 7-Day Moving Average
+3. Active Minutes by Day
+4. Steps Goal Achievement
+
+Assume the daily step goal is:
+
+`10,000 steps`
+
+Show whether the user achieved the goal for each day.
+
+Add a date-range selector with:
+
+* Last 7 Days
+* Last 30 Days
+* Last 90 Days
+
+For now, sample data can be generated locally.
+
+Do not integrate Fitbit yet.
+
+Keep all calculations inside reusable Python functions.
+
+---
+
+## Prompt 4 — Build the Sleep Tab
+
+Enhance the application by implementing only the **Sleep tab**.
+
+Use sample sleep data.
+
+Track:
+
+* Sleep Duration
+* Bedtime
+* Wake Time
+* Deep Sleep
+* REM Sleep
+* Light Sleep
+
+Create metric cards for:
+
+* Last Night Sleep
+* 7-Day Average Sleep
+* Average Bedtime
+* Average Wake Time
+
+Create charts for:
+
+1. Sleep duration by day
+2. 7-day average sleep
+3. Sleep-stage distribution
+4. Bedtime trend
+
+Add a configurable sleep target.
+
+Default target:
+
+`7 hours`
+
+Clearly identify days where sleep duration was below the target.
+
+Do not provide medical advice.
+
+---
+
+## Prompt 5 — Build the Weight Tab
+
+Implement the **Weight tab**.
+
+Use sample daily weight data covering approximately 90 days.
+
+Display metric cards for:
+
+* Current Weight
+* Starting Weight
+* Weight Change
+* 30-Day Average
+
+Create charts for:
+
+1. Daily Weight
+2. 7-Day Moving Average
+3. 30-Day Moving Average
+
+Add an optional target weight.
+
+Show progress toward the target.
+
+Keep all weight calculations reusable and separated from Streamlit UI code.
+
+---
+
+## Prompt 6 — Replace Sample Data with CSV Upload
+
+Now replace the sample data with user-uploaded CSV files.
+
+Add a new section in the sidebar called:
+
+`Health Data`
+
+Allow the user to upload:
+
+* Activity CSV
+* Sleep CSV
+* Weight CSV
+
+Create clear expected CSV formats.
+
+### Activity CSV
+
+Columns:
+
+* date
+* steps
+* active_minutes
+* calories
+* distance
+
+### Sleep CSV
+
+Columns:
+
+* date
+* sleep_duration_hours
+* bedtime
+* wake_time
+* deep_sleep_minutes
+* rem_sleep_minutes
+* light_sleep_minutes
+
+### Weight CSV
+
+Columns:
+
+* date
+* weight
+
+Requirements:
+
+* Validate required columns.
+* Handle missing or invalid data gracefully.
+* Display meaningful validation messages.
+* Convert date fields properly.
+* Do not crash if a file is missing.
+* Dashboard tabs should automatically use uploaded data instead of sample data.
+* Keep sample data available as a fallback demo mode.
+
+---
+
+## Prompt 7 — Add Historical Filters
+
+Enhance the application by introducing common date filters.
+
+Add:
+
+* Last 7 Days
+* Last 30 Days
+* Last 90 Days
+* Last 1 Year
+* Custom Date Range
+
+When the user changes the date range, update all relevant:
+
+* Metrics
+* Charts
+* Moving averages
+* Comparisons
+
+Create reusable date-filtering functions rather than duplicating logic across tabs.
+
+---
+
+## Prompt 8 — Add Goals
+
+Add a **Health Goals** feature.
+
+Allow the user to configure:
+
+* Daily Steps Goal
+* Daily Sleep Goal
+* Target Weight
+
+Default values:
+
+* Steps: 10,000
+* Sleep: 7 hours
+* Weight: configurable by user
+
+Display goal progress throughout the application.
+
+Examples:
+
+* Steps goal achieved percentage
+* Number of days step target achieved
+* Number of days sleep target achieved
+* Weight progress toward target
+
+Store these values initially using Streamlit session state.
+
+Do not add a database yet.
+
+---
+
+## Prompt 9 — Add Health Analytics
+
+Add an analytics layer to the application.
+
+Create reusable calculations to determine:
+
+* Week-over-week steps change
+* Month-over-month steps change
+* Average sleep change
+* Weight change
+* Best activity day
+* Lowest activity day
+* Percentage of days reaching step goal
+* Percentage of days reaching sleep goal
+
+Also calculate simple correlations between:
+
+* Steps and Sleep
+* Steps and Weight
+* Sleep and Weight
+
+Clearly state that correlation does not imply causation.
+
+Display these insights in a new section:
+
+`Health Insights`
+
+Do not use an LLM yet.
+
+---
+
+## Prompt 10 — Add AI Health Coach
+
+Implement the **AI Health Coach** tab.
+
+Use Groq for LLM capabilities.
+
+The AI should receive only calculated summaries and aggregated health statistics rather than unnecessarily sending the entire raw dataset.
+
+Allow the user to ask questions such as:
+
+* How was my health this week?
+* How does my sleep compare with last month?
+* Am I becoming more active?
+* What patterns do you notice between activity and sleep?
+* Summarize my last 30 days.
+
+The AI response should:
+
+* Focus on trends and wellness observations.
+* Avoid diagnosing diseases.
+* Avoid prescribing medication.
+* Avoid presenting itself as a doctor.
+* Clearly distinguish observations from medical advice.
+
+Also generate an automatic:
+
+`Weekly Health Summary`
+
+Keep Groq API keys in environment variables.
+
+Never hardcode API keys.
+
+---
+
+## Prompt 11 — Integrate Fitbit
+
+Replace CSV-only data collection with Fitbit API integration while retaining CSV upload as an optional fallback.
+
+Create a Fitbit integration module.
+
+Retrieve available historical data for:
+
+* Steps
+* Distance
+* Calories
+* Active Minutes
+* Sleep
+* Resting Heart Rate
+* Weight
+
+Requirements:
+
+* Implement Fitbit OAuth authentication securely.
+* Keep Fitbit credentials in environment variables.
+* Do not hardcode secrets.
+* Store tokens securely for local development.
+* Handle expired tokens and refresh tokens.
+* Normalize Fitbit data into the same internal structure currently used by the application.
+
+Do not rewrite dashboard logic specifically for Fitbit.
+
+The application should consume normalized health data regardless of whether it comes from CSV or Fitbit.
+
+---
+
+## Prompt 12 — Add Local Database
+
+Introduce SQLite for persistent storage.
+
+Create tables for:
+
+* activity
+* sleep
+* weight
+* heart_rate
+* health_goals
+* data_sync_history
+
+Requirements:
+
+* Prevent duplicate records.
+* Store data by date.
+* Support updates from Fitbit.
+* Keep database logic separate from Streamlit UI.
+* Add functions for inserting, updating, and retrieving health data.
+
+The Streamlit application should retrieve data from the database instead of calling Fitbit for every page refresh.
+
+---
+
+## Recommended Build Order
+
+Build and test the project in this exact order:
+
+**Prompt 1 → Basic UI**
+
+**Prompt 2 → Dashboard**
+
+**Prompt 3 → Activity**
+
+**Prompt 4 → Sleep**
+
+**Prompt 5 → Weight**
+
+**Prompt 6 → CSV Data**
+
+**Prompt 7 → Date Filters**
+
+**Prompt 8 → Goals**
+
+**Prompt 9 → Analytics**
+
+**Prompt 10 → AI Health Coach**
+
+**Prompt 11 → Fitbit API**
+
+**Prompt 12 → Database**
+
+Do not combine multiple prompts initially. Complete, run, and test each stage before moving to the next prompt.

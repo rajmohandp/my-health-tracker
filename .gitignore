@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments and uv
+.venv/
+
+# Streamlit secrets (keep local credentials out of version control)
+.streamlit/secrets.toml
+.env
+.fitbit/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
