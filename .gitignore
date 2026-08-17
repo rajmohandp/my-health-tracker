@@ -10,6 +10,11 @@ __pycache__/
 .env
 .fitbit/
 
+# Local health database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
 # Editors and operating systems
 .vscode/
 .idea/

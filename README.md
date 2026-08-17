@@ -1,12 +1,15 @@
 # My Health Tracker
 
+For architecture, data design, operations, troubleshooting, deployment, and
+extension guidance, see the
+[Project Design & Operations Guide](docs/PROJECT_DESIGN_OPERATIONS_GUIDE.md).
+
 My Health Tracker is a Streamlit application for viewing activity, sleep,
 weight, and overall health trends. Users can upload CSV health data from the
 sidebar or connect Google Health, with generated sample records retained as a
 fallback demo mode. Google Health data takes priority, followed by CSV and then
-demo data. There
-is no database. Health goals are kept in the current Streamlit session and are
-not persisted after the session ends. The optional AI Health Coach uses Groq
+demo data. Normalized health records, goals, and sync history are persisted in
+a local SQLite database. The optional AI Health Coach uses Groq
 and sends aggregate statistics rather than raw daily health records.
 
 ## Create and run the project
@@ -89,6 +92,16 @@ The `--link-mode copy` option is reliable in OneDrive-backed folders, where
 filesystem hardlinks may not be supported. It can be omitted on a normal local
 filesystem.
 
+## Local database
+
+SQLite is initialized automatically at `data/my_health_tracker.db`. Override
+the location with `HEALTH_DATABASE_PATH`. Google Health syncs and validated CSV
+imports use duplicate-safe upserts keyed by date and source. Normal Streamlit
+reruns read stored records and do not call Google Health; only OAuth's initial
+sync and the explicit **Sync Health** action retrieve remote data. Health goals
+and sanitized sync history are also persisted. OAuth tokens remain in the OS
+credential vault and are never stored in SQLite.
+
 ## Project structure
 
 ```text
@@ -123,6 +136,13 @@ MyHealthTracker/
 - `google_health_integration.py` handles Google OAuth, secure token storage and
   refresh, Google Health API retrieval, and normalization into existing
   application record types.
+- `database/connection.py` configures SQLite connections, transactions, WAL,
+  foreign keys, and the configurable local database path.
+- `database/migrations.py` creates and versions the SQLite schema.
+- `database/repository.py` provides duplicate-safe upserts, date-range reads,
+  persisted goals, and sync-history operations.
+- `services/health_sync_service.py` coordinates Google Health retrieval or CSV
+  imports with normalized database persistence.
 - `activity_data.py` generates deterministic local activity records and contains
   reusable filtering, averaging, moving-average, metric, and step-goal
   calculations.
